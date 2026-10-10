@@ -60,9 +60,26 @@ async def test_scroll_controls_and_refresh_preserve_view(tmp_path):
         await app.refresh_data()
         await pilot.pause()
         assert (table.scroll_x, table.scroll_y) == (x, y)
-        await pilot.click('#table-right')
+
+        # Drag the horizontal scrollbar thumb, without navigation buttons.
+        table.scroll_to(x=0, y=0, animate=False)
         await pilot.pause()
-        assert table.scroll_x > x
-        await pilot.click('#table-left')
+        bar = table.horizontal_scrollbar
+        await pilot.mouse_down(bar, offset=(1, 0))
         await pilot.pause()
-        assert table.scroll_x == x
+        assert app.mouse_captured is bar
+        revision = app.refresh_revision
+        await app.refresh_data()
+        assert app.refresh_revision == revision
+        await pilot.hover(bar, offset=(12, 0))
+        await pilot.mouse_up(bar, offset=(12, 0))
+        await pilot.pause()
+        assert table.scroll_x > 0
+        assert app.mouse_captured is None
+        vertical = table.vertical_scrollbar
+        await pilot.mouse_down(vertical, offset=(0, 1))
+        await pilot.hover(vertical, offset=(0, 8))
+        await pilot.mouse_up(vertical, offset=(0, 8))
+        await pilot.pause()
+        assert table.scroll_y > 0
+        assert not app.query('#table-left, #table-right')

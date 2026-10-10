@@ -1,7 +1,7 @@
 """UI translations. Agent titles, tags and paths are never translated."""
 EN = {
+'自动刷新':'Auto refresh', '自动 5s':'Auto 5s', '手动刷新':'Manual refresh', '会话变化':'Changes', '资源按 PID':'Resources per PID', '本地会话 · 按目录筛选':'Local · Filter by folder', '关闭后端影响同 PID 的全部会话。':'Stopping affects all sessions on this PID.',
 '内存': 'Memory', '线程': 'Threads', '进程资源（同 PID 共享）': 'Process resources (shared PID)', '每 5 秒刷新 · 资源按 PID 统计': 'Refresh: 5s · Resources per PID',
-'左右滑动 · Shift+滚轮 · ← →':'Swipe sideways · Shift+wheel · ← →',
 '会话与工作空间':'Sessions & workspaces', '使用帮助':'Help & shortcuts', '返回会话列表  Esc / q':'Back to sessions  Esc / q',
 '编辑会话':'Edit session', '会话名称 · Agent 原始名称':'Session name · native Agent name',
 '会话名称直接修改 Codex 原始名称；APP 可能需要重新打开会话才能刷新。分类标签仅在本管理器保存。':'Changes the native Codex name. Reopen the chat in the app if needed. Tags are local to ChatDock.',
@@ -68,8 +68,9 @@ MOUSE
   Click a workspace to filter; select All workspaces to reset.
   Click a session to inspect it. Use the right-side action buttons.
   Filter by Agent, client or state. Scroll tables with the wheel.
-  Swipe sideways or Shift+wheel to see columns to the right.
-  If gestures are not forwarded, use arrow keys or the buttons below the table.
+  Drag the bottom or right scrollbar; wheel and trackpad also work.
+  Auto-refresh checks every 5s; toggle it at the top or click Refresh.
+  Refresh pauses during scrollbar drags and while dialogs are open.
 
 WHILE TYPING
   q and ? are ordinary characters inside inputs.

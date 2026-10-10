@@ -9,7 +9,7 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Button, Checkbox, DataTable, Footer, Header, Input, Label, Select, Static, Tree
+from textual.widgets import Button, Checkbox, DataTable, Footer, Input, Label, Select, Static, Tree
 from .core import clean
 from .registry import Collector, close_plan, filtered, terminate
 from .store import Store
@@ -176,6 +176,9 @@ class AgentDeck(App):
         self.ready = False
         self.directory_signature = None
         self.client_options = None
+        self.polling_enabled = True
+        self.refresh_revision = 0
+        self.observed_sessions = {}
 
     def get_css_variables(self):
         variables = super().get_css_variables()
@@ -194,15 +197,16 @@ class AgentDeck(App):
             self.bind(key, action, description=self.tr(description), show=key not in ('f1', 'escape', 'ctrl+q'))
 
     def compose(self) -> ComposeResult:
-        yield Header()
-        yield Static(self.tr('正在读取本地会话…'), id='summary')
+        with Horizontal(id='topbar'):
+            yield Static(self.tr('正在读取本地会话…'), id='summary')
+            yield Checkbox(self.tr('自动刷新'), value=self.polling_enabled, id='auto-refresh')
         with Horizontal(id='workspace'):
             with Vertical(id='sidebar'):
                 yield Label(self.tr('工作空间'), classes='section-title')
                 yield Input(placeholder=self.tr('筛选目录…'), id='folder-search')
                 yield Checkbox(self.tr('包含子目录'), value=True, id='recursive')
                 yield Tree(self.tr('全部工作空间'), data='', id='folders')
-                yield Static(self.tr('● 持锁 ≠ 正在生成\n○ 历史 ≠ 异常断连\n前端连接状态可能未知'), id='legend')
+                yield Static(self.tr('本地会话 · 按目录筛选'), id='legend')
             with Vertical(id='center'):
                 with Horizontal(id='toolbar'):
                     yield Input(placeholder=self.tr('搜索会话、ID、目录、标签  Ctrl+F'), id='search')
@@ -218,19 +222,14 @@ class AgentDeck(App):
                 yield Static(self.tr('全部工作空间'), id='scope')
                 yield DataTable(id='sessions', cursor_type='row', zebra_stripes=True)
                 yield Static('', id='empty')
-                with Horizontal(id='table-navigation'):
-                    yield Button('←', id='table-left')
-                    yield Static(self.tr('左右滑动 · Shift+滚轮 · ← →'), id='scroll-hint')
-                    yield Button('→', id='table-right')
             with Vertical(id='inspector'):
                 yield Label(self.tr('会话详情'), classes='section-title')
                 with VerticalScroll(id='detail-scroll'):
                     yield Static(self.tr('选择会话查看详情'), id='detail', markup=False)
                 yield Button(self.tr('编辑名称 / 标签'), id='edit', variant='primary', disabled=True)
                 yield Button(self.tr('复制会话 ID'), id='copy', disabled=True)
-                yield Button(self.tr('分离连接 · 不支持'), id='detach', disabled=True)
                 yield Button(self.tr('关闭后端…'), id='close', variant='error', disabled=True)
-                yield Static(self.tr('外部会话不由本工具托管，不能单独分离连接。关闭后端会影响同 PID 的所有会话。'), classes='muted', id='action-note')
+                yield Static(self.tr('关闭后端影响同 PID 的全部会话。'), classes='muted', id='action-note')
         yield Static(self.tr('本地管理 · 不上传数据'), id='statusline')
         yield Footer()
 
@@ -240,21 +239,34 @@ class AgentDeck(App):
             table.add_column(label, width=width)
         self.ready = True
         await self.refresh_data()
-        self.set_interval(5, self.refresh_data)
+        self.set_interval(5, self.poll_data)
         table.focus()
 
     def on_resize(self, event):
         self.set_class(event.size.width < 120, 'compact')
         self.set_class(event.size.width < 85, 'narrow')
 
+    async def poll_data(self):
+        if self.polling_enabled:
+            await self.refresh_data()
+
     async def refresh_data(self):
-        if self.busy or len(self.screen_stack) > 1:
+        if self.busy or len(self.screen_stack) > 1 or self.mouse_captured is not None:
             return
         self.busy = True
         try:
             data = await asyncio.to_thread(self.collector.collect)
+            if self.mouse_captured is not None or len(self.screen_stack) > 1:
+                return
+            fields = ('title', 'cwd', 'pid', 'start', 'source', 'status', 'lock')
+            old = self.observed_sessions
+            new = {r['key']: tuple(r.get(k) for k in fields) for r in data['rows']}
+            added, removed = len(new.keys() - old.keys()), len(old.keys() - new.keys())
+            changed = sum(old[k] != new[k] for k in old.keys() & new.keys())
             self.labels = self.store.all()
             self.rows = data['rows']
+            self.observed_sessions = new
+            self.refresh_revision += 1
             live = sum(bool(r.get('pid')) for r in self.rows)
             held = sum(r.get('lock') == '持有写锁' for r in self.rows)
             spaces = len({r['cwd'] for r in self.rows if r.get('cwd')})
@@ -268,7 +280,9 @@ class AgentDeck(App):
                 self.client_options = clients
             self.update_folders()
             self.apply_filters()
-            message = ' · '.join(data['warnings']) or self.tr('每 5 秒刷新 · 资源按 PID 统计')
+            mode = self.tr('自动 5s') if self.polling_enabled else self.tr('手动刷新')
+            delta = f'+{added} / −{removed} / Δ{changed}'
+            message = ' · '.join(data['warnings']) or f'{mode}  ·  {self.tr("会话变化")} {delta}  ·  {self.tr("资源按 PID")}'
             self.query_one('#statusline', Static).update(plain(message + '  |  ' + data['time'][11:19]))
         except Exception as exc:
             self.query_one('#statusline', Static).update(plain(self.tr('刷新失败，保留上次结果：') + str(exc)))
@@ -304,24 +318,34 @@ class AgentDeck(App):
         table = self.query_one('#sessions', DataTable)
         old = self.selected
         scroll_x, scroll_y = table.scroll_x, table.scroll_y
-        table.clear()
+        keys = [r['key'] for r in self.filtered_rows]
+        rebuild = [key.value for key in table.rows] != keys
+        if rebuild:
+            table.clear()
         for r in self.filtered_rows:
             meta = self.labels.get(r['key'], {})
             name = r.get('title') or self.tr('(未命名会话)')
             status = Text(self.tr('● 持锁'), style=colors(self.palette_name)['success']) if r['lock'] == '持有写锁' else Text(self.tr('◉ 进程'), style=colors(self.palette_name)['warning']) if r.get('pid') else Text(self.tr('○ 历史'), style=colors(self.palette_name)['muted'])
-            table.add_row(status, plain(name), plain(r['agent']), plain(self.tr(r['source'])),
+            cells = (status, plain(name), plain(r['agent']), plain(self.tr(r['source'])),
                           str(r.get('pid') or '—'), plain(r.get('cwd') or self.tr('未知')),
                           f"{r['rss_bytes'] / 1024**2:.1f} MiB" if r.get('rss_bytes') is not None else '—',
                           str(r['threads']) if r.get('threads') is not None else '—',
-                          plain(' · '.join(meta.get('tags', []))), key=r['key'])
+                          plain(' · '.join(meta.get('tags', []))))
+            if rebuild:
+                table.add_row(*cells, key=r['key'])
+            else:
+                for column, value in zip(table.ordered_columns, cells):
+                    if table.get_cell(r['key'], column.key) != value:
+                        table.update_cell(r['key'], column.key, value, update_width=True)
         index = next((i for i, r in enumerate(self.filtered_rows) if r['key'] == old), 0)
         self.selected = self.filtered_rows[index]['key'] if self.filtered_rows else None
-        if self.filtered_rows:
+        if self.filtered_rows and (rebuild or table.cursor_row != index):
             table.move_cursor(row=index)
         self.query_one('#empty', Static).update(self.tr('没有匹配的会话。请调整目录、搜索词或筛选条件。') if not self.filtered_rows else '')
         self.query_one('#scope', Static).update(plain(f'{self.directory or self.tr("全部工作空间")}  /  {len(self.filtered_rows)}'))
         self.show_detail()
-        self.call_after_refresh(table.scroll_to, x=scroll_x, y=scroll_y, animate=False)
+        if rebuild:
+            self.call_after_refresh(table.scroll_to, x=scroll_x, y=scroll_y, animate=False)
 
     def current(self):
         return next((r for r in self.filtered_rows if r['key'] == self.selected), None)
@@ -375,16 +399,17 @@ class AgentDeck(App):
 
     @on(Select.Changed)
     @on(Checkbox.Changed)
-    def filter_changed(self):
+    def filter_changed(self, event):
+        if event.control.id == 'auto-refresh':
+            self.polling_enabled = event.value
+            if self.ready and len(self.screen_stack) == 1:
+                self.query_one('#statusline', Static).update(self.tr('自动 5s') if self.polling_enabled else self.tr('手动刷新'))
+            return
         self.apply_filters()
 
     @on(Button.Pressed)
     async def button_pressed(self, event):
-        if event.button.id in ('table-left', 'table-right'):
-            table = self.query_one('#sessions', DataTable)
-            direction = -1 if event.button.id == 'table-left' else 1
-            table.scroll_to(x=table.scroll_x + direction * 20, animate=False)
-        elif event.button.id == 'appearance':
+        if event.button.id == 'appearance':
             self.action_appearance()
         elif event.button.id == 'refresh':
             await self.refresh_data()

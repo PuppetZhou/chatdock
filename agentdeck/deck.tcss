@@ -1,5 +1,4 @@
 Screen { background: $deck-bg; color: $deck-text; }
-Header { background: $deck-panel; color: $deck-accent; }
 Footer { background: $deck-panel; }
 #summary { height: 3; padding: 1 1; background: $deck-surface; color: $deck-text; text-style: bold; }
 #workspace { height: 1fr; }
@@ -49,7 +48,6 @@ ModalScreen { align: center middle; background: #000000 65%; }
 .narrow #inspector .section-title { display: none; }
 .narrow #detail-scroll { width: 1fr; height: 100%; }
 .narrow #inspector Button { width: 12; min-width: 10; margin: 1 0; }
-.narrow #detach { display: none; }
 .narrow #action-note { display: none; }
 #help-content { height: auto; max-height: 26; padding: 1; }
 #help-close { width: 100%; margin-top: 1; }
@@ -70,6 +68,35 @@ Tree > .tree--cursor { background: $deck-selection; color: $deck-text; }
 #palette-preview { padding: 1; height: 4; background: $deck-bg; }
 #settings-dialog { width: 66; max-width: 95%; height: auto; padding: 1 2; background: $deck-panel; border: solid $deck-border; }
 #settings-dialog Select { width: 100%; margin: 1 0; }
-#table-navigation { height: 1; background: $deck-panel; }
-#table-navigation Button { width: 5; min-width: 5; height: 1; padding: 0; margin: 0; }
-#scroll-hint { width: 1fr; height: 1; text-align: center; color: $deck-muted; }
+
+/* Quiet, framed panels inspired by terminal file managers. */
+Screen { padding: 0 1; }
+#topbar { height: 3; align-vertical: middle; }
+#summary { width: 1fr; height: 3; background: $deck-bg; color: $deck-accent; padding: 1 1; }
+#auto-refresh { width: 16; height: 3; border: none; background: $deck-bg; }
+#workspace { margin-bottom: 1; }
+#sidebar { width: 28; background: $deck-bg; border: round $deck-border; padding: 0 1; }
+#center { border: round $deck-border; margin: 0 1; padding: 0 1; }
+#inspector { width: 34; background: $deck-bg; border: round $deck-border; padding: 0 1; }
+#sidebar:focus-within, #center:focus-within, #inspector:focus-within { border: round $deck-accent; }
+.section-title { height: 2; padding: 0 1; color: $deck-accent; }
+#toolbar { margin-top: 0; }
+#filters { margin-top: 0; }
+#scope { padding: 0; margin: 1 0; max-height: 3; }
+#folders { background: $deck-bg; }
+#legend { height: 2; padding-top: 0; text-align: center; }
+#action-note { margin: 1 0 0 0; }
+#statusline { background: $deck-bg; }
+Footer { background: $deck-bg; }
+#sessions { scrollbar-size: 1 1; overflow-x: scroll; overflow-y: scroll; }
+#folders, #detail-scroll, #sessions, #scope {
+    scrollbar-color: $deck-muted;
+    scrollbar-color-hover: $deck-accent;
+    scrollbar-color-active: $deck-accent;
+    scrollbar-background: $deck-surface;
+    scrollbar-background-hover: $deck-surface;
+    scrollbar-background-active: $deck-surface;
+    scrollbar-corner-color: $deck-bg;
+}
+.narrow #center { margin: 0 0 1 0; }
+.narrow #inspector { border: round $deck-border; }
