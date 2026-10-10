@@ -5,7 +5,7 @@ Footer { background: $deck-panel; }
 #workspace { height: 1fr; }
 #sidebar { width: 29; min-width: 22; background: $deck-panel; padding: 0 1; border-right: solid $deck-border; }
 .section-title { height: 3; padding: 1 1; color: $deck-muted; text-style: bold; }
-#folders { height: 1fr; background: $deck-panel; scrollbar-size: 1 1; }
+#folders { height: 1fr; overflow-x: auto; background: $deck-panel; scrollbar-size: 1 1; }
 #folder-search { margin: 0; }
 #recursive { margin: 0; border: none; }
 #legend { height: 5; color: $deck-muted; padding-top: 1; }
@@ -15,7 +15,7 @@ Footer { background: $deck-panel; }
 #refresh { min-width: 11; width: 11; margin-left: 1; }
 #filters { height: 3; margin-top: 1; }
 Select { width: 1fr; margin-right: 1; }
-#scope { height: 2; padding-top: 1; color: $deck-muted; }
+#scope { height: auto; max-height: 6; overflow-y: auto; padding-top: 1; color: $deck-muted; }
 #sessions { height: 1fr; background: $deck-bg; scrollbar-size: 1 1; }
 DataTable > .datatable--header { background: $deck-surface; color: $deck-text; text-style: bold; }
 DataTable > .datatable--cursor { background: $deck-selection; color: $deck-text; }

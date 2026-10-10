@@ -10,7 +10,7 @@ def test_cli_help_and_invalid_modes():
     root = Path(__file__).resolve().parents[1]
     result = subprocess.run([str(root/'chatdock'), '--help'], capture_output=True, text=True)
     assert result.returncode == 0
-    for text in ('--tui', '--json', 'q 退出', '示例'):
+    for text in ('--tui', '--web', '--install-command', '--help-all'):
         assert text in result.stdout
     result = subprocess.run([str(root/'chatdock'), '--tui', '--json'], capture_output=True, text=True)
     assert result.returncode == 2

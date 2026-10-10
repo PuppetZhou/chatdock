@@ -1,5 +1,6 @@
 """UI translations. Agent titles, tags and paths are never translated."""
 EN = {
+'内存': 'Memory', '线程': 'Threads', '进程资源（同 PID 共享）': 'Process resources (shared PID)', '每 5 秒刷新 · 资源按 PID 统计': 'Refresh: 5s · Resources per PID',
 '左右滑动 · Shift+滚轮 · ← →':'Swipe sideways · Shift+wheel · ← →',
 '会话与工作空间':'Sessions & workspaces', '使用帮助':'Help & shortcuts', '返回会话列表  Esc / q':'Back to sessions  Esc / q',
 '编辑会话':'Edit session', '会话名称 · Agent 原始名称':'Session name · native Agent name',

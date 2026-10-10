@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chatdock"
-version = "0.2.0"
+version = "0.3.0"
 description = "ChatDock — local Linux agent session inspector and terminal dashboard"
 requires-python = ">=3.10"
 dependencies = []
@@ -23,7 +23,7 @@ agent-deck = "agentdeck.tui:main"
 include = ["agentdeck*"]
 
 [tool.setuptools.package-data]
-agentdeck = ["*.tcss"]
+agentdeck = ["*.tcss", "static/*.html", "static/*.css", "static/*.js"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

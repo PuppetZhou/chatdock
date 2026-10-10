@@ -21,7 +21,7 @@ from .terminal import install_horizontal_wheel_support
 
 
 def plain(value):
-    return Text(clean(value))
+    return Text(clean(value), overflow='fold', no_wrap=False)
 
 
 class AppearanceScreen(ModalScreen):
@@ -236,7 +236,7 @@ class AgentDeck(App):
 
     async def on_mount(self):
         table = self.query_one('#sessions', DataTable)
-        for label, width in [(self.tr('状态'), 9), (self.tr('会话'), 26), ('Agent', 12), (self.tr('客户端'), 18), ('PID', 8), (self.tr('目录'), 25), (self.tr('标签'), 22)]:
+        for label, width in [(self.tr('状态'), 9), (self.tr('会话'), 26), ('Agent', 12), (self.tr('客户端'), 18), ('PID', 8), (self.tr('目录'), None), (self.tr('内存'), 12), (self.tr('线程'), 7), (self.tr('标签'), 22)]:
             table.add_column(label, width=width)
         self.ready = True
         await self.refresh_data()
@@ -268,7 +268,7 @@ class AgentDeck(App):
                 self.client_options = clients
             self.update_folders()
             self.apply_filters()
-            message = ' · '.join(data['warnings']) or self.tr('每 5 秒刷新 · 前端连接未知不等于断连 · 会话名称来自 Agent；分类标签保存在管理器')
+            message = ' · '.join(data['warnings']) or self.tr('每 5 秒刷新 · 资源按 PID 统计')
             self.query_one('#statusline', Static).update(plain(message + '  |  ' + data['time'][11:19]))
         except Exception as exc:
             self.query_one('#statusline', Static).update(plain(self.tr('刷新失败，保留上次结果：') + str(exc)))
@@ -311,6 +311,8 @@ class AgentDeck(App):
             status = Text(self.tr('● 持锁'), style=colors(self.palette_name)['success']) if r['lock'] == '持有写锁' else Text(self.tr('◉ 进程'), style=colors(self.palette_name)['warning']) if r.get('pid') else Text(self.tr('○ 历史'), style=colors(self.palette_name)['muted'])
             table.add_row(status, plain(name), plain(r['agent']), plain(self.tr(r['source'])),
                           str(r.get('pid') or '—'), plain(r.get('cwd') or self.tr('未知')),
+                          f"{r['rss_bytes'] / 1024**2:.1f} MiB" if r.get('rss_bytes') is not None else '—',
+                          str(r['threads']) if r.get('threads') is not None else '—',
                           plain(' · '.join(meta.get('tags', []))), key=r['key'])
         index = next((i for i, r in enumerate(self.filtered_rows) if r['key'] == old), 0)
         self.selected = self.filtered_rows[index]['key'] if self.filtered_rows else None
@@ -341,6 +343,7 @@ class AgentDeck(App):
             (self.tr('会话 ID'), row['id']), (self.tr('工作目录'), row.get('cwd') or self.tr('未知')),
             (self.tr('后台状态'), self.tr(row['status'])),
             ('PID / ' + self.tr('同 PID 记录'), f"{row.get('pid') or '—'} / {shared}"),
+            (self.tr('进程资源（同 PID 共享）'), (f"{row['rss_bytes'] / 1024**2:.1f} MiB RSS" if row.get('rss_bytes') is not None else '—') + ' / ' + str(row.get('threads') if row.get('threads') is not None else '—') + ' ' + self.tr('线程')),
             (self.tr('写锁'), self.tr(row['lock'])),
             (self.tr('标签'), ' · '.join(meta.get('tags', [])) or self.tr('尚未添加')),
             (self.tr('检测依据'), self.tr(row['evidence'])),
@@ -348,7 +351,7 @@ class AgentDeck(App):
         if meta.get('alias'):
             sections.append((self.tr('旧版管理器别名（未同步）'), meta['alias']))
         text = '\n\n'.join(label + '\n' + str(value) for label, value in sections)
-        self.query_one('#detail', Static).update(Text('\n'.join(clean(line) for line in text.splitlines())))
+        self.query_one('#detail', Static).update(Text('\n'.join(clean(line) for line in text.splitlines()), overflow='fold', no_wrap=False))
 
     @on(DataTable.RowHighlighted, '#sessions')
     def highlight(self, event):
@@ -357,6 +360,7 @@ class AgentDeck(App):
 
     @on(Tree.NodeSelected, '#folders')
     def directory_selected(self, event):
+        self.query_one('#folders', Tree).tooltip = event.node.data or self.tr('全部工作空间')
         self.directory = event.node.data or ''
         self.apply_filters()
 
@@ -467,7 +471,7 @@ class AgentDeck(App):
             self.directory_signature = self.client_options = None
             await self.recompose()
             table = self.query_one('#sessions', DataTable)
-            for label, width in [('状态', 9), ('会话', 26), ('Agent', 12), ('客户端', 18), ('PID', 8), ('目录', 25), ('标签', 22)]:
+            for label, width in [('状态', 9), ('会话', 26), ('Agent', 12), ('客户端', 18), ('PID', 8), ('目录', None), ('内存', 12), ('线程', 7), ('标签', 22)]:
                 table.add_column(self.tr(label), width=width)
             for id, value in saved.items():
                 self.query_one('#'+id, Input).value = value

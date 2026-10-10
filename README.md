@@ -1,6 +1,6 @@
 # ChatDock · chatdock
 
-在一个终端中查看不同工作目录、Agent 和客户端的会话。支持鼠标、键盘、目录筛选、名称与标签，以及明确展示影响范围的后端关闭操作。
+通过终端或本地网页查看不同工作目录、Agent 和客户端的会话。支持鼠标、键盘、目录筛选、名称与标签，以及明确展示影响范围的后端关闭操作。
 
 ![ChatDock 终端界面，使用虚构演示数据](docs/preview.svg)
 
@@ -15,15 +15,20 @@ git clone https://github.com/PuppetZhou/chatdock.git
 cd chatdock
 python3 -m venv .venv
 .venv/bin/pip install -e '.[tui]'
-./chatdock --tui
+./chatdock --install-command
+chatdock --tui                 # 终端界面
+chatdock --web                 # 本地网页版
 ```
+
+如果安装提示 `~/.local/bin` 不在 PATH 中，将 `export PATH="$HOME/.local/bin:$PATH"` 加入 `~/.bashrc`（Zsh 用 `~/.zshrc`），并在当前终端执行一次。Fish 使用 `fish_add_path ~/.local/bin`。安装命令不会覆盖已有文件或自动修改 Shell 配置。
 
 仓库启动脚本自动使用仓库内的 `.venv`。安装包后，也可以在已激活的虚拟环境中运行 `chatdock --tui`。
 
 查看命令帮助与使用示例：
 
 ```bash
-./chatdock --help
+chatdock --help               # 简短帮助
+chatdock --help-all           # 包括语言、主题、端口等完整参数
 ```
 
 界面底部显示常用快捷键，按 `?` 或 `F1` 查看完整说明；按 `q` 退出（输入框中先按 `Esc` 返回列表）。
@@ -40,14 +45,37 @@ python3 -m venv .venv
 
 默认 Codex 数据目录为 `$CODEX_HOME`，未设置时为 `~/.codex`。
 
-安装到 PATH（目标不存在时执行）：
+在 SSH 或 VS Code 集成终端内直接运行，不需要端口转发。建议终端至少 **120 列 × 35 行**；表格支持触控板横向滚动、Shift+滚轮，以及表格获得焦点时的左右方向键；也可点击表格下方的 **← / →** 按钮查看客户端、目录等字段。部分终端不会转发触控板横向手势，此时请使用方向键或按钮。自动刷新会保留滚动位置。小于 85 列时改为上下布局并隐藏目录侧栏，仍可用搜索框搜索路径。鼠标功能依赖终端支持，Tab 和方向键可完成相同操作。
+
+## 本地网页版
 
 ```bash
-mkdir -p "$HOME/.local/bin"
-ln -s "$(pwd)/chatdock" "$HOME/.local/bin/chatdock"
+chatdock --web                # 默认 8765 端口
+chatdock --web --port 8787     # 自选端口
 ```
 
-在 SSH 或 VS Code 集成终端内直接运行，不需要端口转发。建议终端至少 **120 列 × 35 行**；表格支持触控板横向滚动、Shift+滚轮，以及表格获得焦点时的左右方向键；也可点击表格下方的 **← / →** 按钮查看客户端、目录等字段。部分终端不会转发触控板横向手势，此时请使用方向键或按钮。自动刷新会保留滚动位置。小于 85 列时改为上下布局并隐藏目录侧栏，仍可用搜索框搜索路径。鼠标功能依赖终端支持，Tab 和方向键可完成相同操作。
+打开终端打印的完整链接（包含 `#token=...`）。服务仅绑定 `127.0.0.1`，每次启动使用新的访问令牌；不要公开分享启动链接。网页可以按工作目录、Agent、客户端和状态筛选，查看完整路径、进程内存和线程数，编辑原生名称与标签，并确认关闭后端。支持中英文、四套配色和字体选择。设置保存在浏览器本地。
+
+![ChatDock 网页版，虚构演示数据](docs/web-preview.png)
+
+**远程服务器 / SSH：** localhost 指运行 ChatDock 的那台机器。在自己电脑上建立端口转发，再打开启动链接：
+
+```bash
+ssh -N -L 8765:127.0.0.1:8765 user@server
+```
+
+VS Code Remote SSH 也可以在“端口”面板转发 **8765 → 8765**。浏览器端与服务端使用相同端口，以便验证请求来源。不需要开放服务器公网端口。按 Ctrl+C 结束 HTTP 服务，不会停止 Agent。
+
+### 字体
+
+- **终端版**的字体由宿主终端控制，ChatDock 无法单独改变。请在 VS Code 的终端字体设置，或所用终端的字体偏好中选择字体和字号；远程 SSH 使用的是你电脑上的字体。
+- **网页版**左下角可选 System Sans、System Mono、JetBrains Mono、Cascadia Code。后两种需要预先安装在浏览器所在电脑上，未安装时回退系统等宽字体。页面不下载外部字体。
+
+### 内存与线程
+
+TUI 和网页版显示 `/proc/<pid>/status` 中的 **RSS 常驻内存**与 **操作系统线程数**。只统计关联 PID 本身，不包含子进程；多个会话共用 PID 时显示相同数据，不能当作单条会话独占资源。网页总内存按 PID 去重，汇总可采样的值。历史会话、无法关联的进程或采样失败显示 `—`，不猜测为零。线程数也不是 Agent 任务数或模型 token 数。
+
+终端目录列按路径长度扩展，可横向滚动；选中目录后上方显示完整路径，右侧详情中的长路径自动换行。
 
 ## 语言与主题
 
@@ -131,7 +159,7 @@ ${XDG_DATA_HOME:-~/.local/share}/codex-status/labels.sqlite
 
 **名称和标签不同**：会话名称修改会保存到 Codex；分类标签只在管理器内使用。旧版别名仅在详情中作为“未同步”备注展示，不会自动批量写入 Agent。
 
-管理器不提供网络服务、不发送模型请求、不消耗推理 token。依赖安装需要网络；重命名启动的官方 Codex 后端可能按照自身配置进行初始化联网。
+默认终端模式不启动网络服务；`--web` 显式启动仅本机可访问的 HTTP 服务，包含访问令牌、Host / Origin 校验和操作确认。管理器不发送模型请求、不消耗推理 token。依赖安装需要网络；重命名启动的官方 Codex 后端可能按照自身配置进行初始化联网。
 
 不要把 Agent 数据目录、认证文件、真实诊断输出或上述管理数据库提交到 GitHub。仓库预览只使用虚构数据。
 
@@ -146,6 +174,10 @@ ${XDG_DATA_HOME:-~/.local/share}/codex-status/labels.sqlite
 测试包含目录边界、标签持久化、鼠标操作、筛选、空结果、确认取消、PID 变化及共享后端影响范围。终止测试仅作用于测试创建的临时子进程。
 
 ```text
+agentdeck/web.py        本地 HTTP API，复用采集和操作保护
+agentdeck/static/       网页界面，无需 Node 构建
+agentdeck/terminal.py   终端横向滚轮兼容
+agentdeck/install.py    全局命令安装
 agentdeck/core.py       原始 Codex CLI 与只读采样
 agentdeck/registry.py   Agent 数据整合、筛选、进程操作保护
 agentdeck/store.py      本地分类标签与旧版别名 SQLite 存储

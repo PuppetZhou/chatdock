@@ -176,18 +176,40 @@ def main():
     language_parser.add_argument('--lang', choices=['zh', 'en'])
     ui_lang = language_parser.parse_known_args()[0].lang
     en = ui_lang == 'en'
+    advanced = '--help-all' in sys.argv
     parser = argparse.ArgumentParser(
-        description='Local Agent sessions: status, workspaces, native names and tags.' if en else '本地 Agent 会话管理器：查看状态、目录分类、原生命名与标签。',
+        add_help=False, usage='%(prog)s [--tui | --web] [options]',
+        description='ChatDock · Local Agent session manager' if en else 'ChatDock · 本地 Agent 会话管理器',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=examples(Path(sys.argv[0]).name, language=ui_lang or 'zh'))
-    parser.add_argument('--tui', action='store_true', help='Open the interactive dashboard (q: quit, ?: help)' if en else '打开支持键盘和鼠标的全屏界面（q 退出，? 帮助）')
-    parser.add_argument('--all', action='store_true', help='Include session history without write locks' if en else '包含没有写锁的历史会话')
-    parser.add_argument('--json', action='store_true', help='Output JSON; with --watch, one snapshot per line' if en else '输出 JSON；与 --watch 合用时每行一个快照')
-    parser.add_argument('--watch', type=float, metavar='SECONDS', help='Refresh interval in seconds (minimum 1)' if en else '按指定间隔刷新，至少 1 秒')
-    parser.add_argument('--home', type=Path, default=Path(os.environ.get('CODEX_HOME', '~/.codex')).expanduser(), help='Codex data directory' if en else 'Codex 数据目录')
-    parser.add_argument('--lang', choices=['zh', 'en'], help='Interface language / 界面语言')
-    parser.add_argument('--theme', choices=list(PALETTES), help='Color theme / 配色主题 (TUI)')
+    parser._optionals.title = 'Options' if en else '选项'
+    parser.add_argument('-h', '--help', action='help', help='Show help' if en else '查看帮助')
+    parser.add_argument('--help-all', action='help', help='All options' if en else '查看全部参数')
+    parser.add_argument('--tui', action='store_true', help='Terminal dashboard' if en else '打开终端界面')
+    parser.add_argument('--web', action='store_true', help='Local browser dashboard' if en else '打开本地网页版')
+    parser.add_argument('--port', type=int, default=8765, help=('HTTP port (default 8765)' if en else 'HTTP 端口（默认 8765）') if advanced else argparse.SUPPRESS)
+    parser.add_argument('--install-command', action='store_true', help='Add command to ~/.local/bin' if en else '安装命令到 ~/.local/bin')
+    parser.add_argument('--all', action='store_true', help='Include history' if en else '包含历史会话')
+    parser.add_argument('--json', action='store_true', help='Output JSON' if en else '输出 JSON')
+    parser.add_argument('--watch', type=float, metavar='SECONDS', help='Refresh interval (seconds)' if en else '定时刷新（秒）')
+    parser.add_argument('--home', type=Path, default=Path(os.environ.get('CODEX_HOME', '~/.codex')).expanduser(), help=('Codex data directory' if en else 'Codex 数据目录') if advanced else argparse.SUPPRESS)
+    parser.add_argument('--lang', choices=['zh', 'en'], help='Interface language / 界面语言' if advanced else argparse.SUPPRESS)
+    parser.add_argument('--theme', choices=list(PALETTES), help='Color theme / 配色主题 (TUI)' if advanced else argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.install_command:
+        from .install import install_command
+        try:
+            install_command()
+        except (OSError, ValueError) as exc:
+            parser.error(str(exc))
+        return 0
+    if args.web:
+        if args.tui or args.all or args.json or args.watch is not None:
+            parser.error('--web cannot be combined with --tui, --all, --json or --watch')
+        if not 0 <= args.port <= 65535:
+            parser.error('--port must be between 0 and 65535')
+        from .web import serve
+        return serve(args.home.expanduser(), args.port)
     if args.tui:
         if args.all or args.json or args.watch is not None:
             parser.error('--tui 不能与 --all、--json 或 --watch 合用；请使用界面内筛选。')

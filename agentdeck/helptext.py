@@ -31,25 +31,11 @@ KEYBOARD_HELP = '''日常操作
 
 def examples(program, language='zh'):
     if language == 'en':
-        return f"""Examples:
-  {program} --tui --lang en             Open the English dashboard
-  {program} --tui --theme tokyo-night   Choose a color theme
-  {program} --all                      Include history
-  {program} --json                     Output JSON
-  {program} --watch 2                  Refresh the text view (Ctrl+C to stop)
-
-Dashboard: q quit · ? / F1 help · F2 appearance & language
-Input fields accept q as text. Quitting does not stop Agents.
+        return f"""Start: {program} --tui  |  {program} --web
+No options: show a status snapshot.
+Install once: ./chatdock --install-command (then use chatdock anywhere).
 """
-    return f'''示例：
-  {program} --tui          打开键鼠交互界面
-  {program}                查看一次 Codex 状态摘要
-  {program} --all          包含历史会话
-  {program} --json         输出 JSON
-  {program} --watch 2      每 2 秒刷新文字摘要（Ctrl+C 退出）
-  {program} --tui --home ~/.codex
-  {program} --tui --lang en --theme tokyo-night
-
-界面快捷键：q 退出 · ? / F1 帮助 · Ctrl+F 搜索 · Ctrl+R 刷新 · F2 外观 / 语言
-输入框中的 q 为普通字符；退出界面不会终止 Agent。
-'''
+    return f"""启动：{program} --tui  |  {program} --web
+不加参数：查看状态摘要。
+首次安装：./chatdock --install-command，之后可在任意目录使用 chatdock。
+"""

@@ -16,6 +16,25 @@ def identity(pid):
     return stat[19]  # /proc field 22, process start ticks
 
 
+def process_resources(pid, start, proc_root=Path('/proc')):
+    """RSS and OS threads for a verified PID, never per-session attribution."""
+    empty = dict(rss_bytes=None, threads=None)
+    if not pid or not start:
+        return empty
+    try:
+        path = proc_root / str(pid)
+        def started():
+            return path.joinpath('stat').read_text().rsplit(')', 1)[1].split()[19]
+        if started() != str(start):
+            return empty
+        fields = dict(line.split(':', 1) for line in path.joinpath('status').read_text().splitlines() if ':' in line)
+        result = dict(rss_bytes=int(fields['VmRSS'].split()[0]) * 1024 if 'VmRSS' in fields else None,
+                      threads=int(fields['Threads']) if 'Threads' in fields else None)
+        return result if started() == str(start) else empty
+    except (OSError, ValueError, IndexError):
+        return empty
+
+
 def provider(p):
     args = p['args']
     if not args:
@@ -127,6 +146,12 @@ class Collector:
                 row = proc_row(p, procs, agent)
                 if row:
                     rows.append(row)
+        resources = {}
+        for row in rows:
+            key = (row.get('pid'), row.get('start'))
+            if key not in resources:
+                resources[key] = process_resources(*key)
+            row.update(resources[key])
         rows.sort(key=lambda r: (not bool(r.get('pid')), -r.get('updated_at', 0), r['key']))
         return dict(rows=rows, warnings=data['warnings'], time=data['time'])
 

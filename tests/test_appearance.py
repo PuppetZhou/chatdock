@@ -69,9 +69,9 @@ def test_english_cli_help():
     executable=Path(__file__).resolve().parents[1]/'chatdock'
     result=subprocess.run([str(executable),'--lang','en','--help'],capture_output=True,text=True)
     assert result.returncode == 0
-    assert 'Examples:' in result.stdout
-    assert 'tokyo-night' in result.stdout
-    assert 'F2 appearance' in result.stdout
+    assert 'Start:' in result.stdout
+    assert 'tokyo-night' not in result.stdout
+    assert 'F2' not in result.stdout
 
 
 async def test_footer_and_confirmation_use_english(tmp_path):

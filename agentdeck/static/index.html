@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ChatDock · Sessions</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="ChatDock"
+        ><span class="logo">◈</span> ChatDock<span class="version"
+          >LOCAL</span
+        ></a
+      >
+      <div class="sidebar-title" data-i="workspaces">工作空间</div>
+      <input
+        id="folder-search"
+        type="search"
+        placeholder="筛选目录"
+        aria-label="Filter workspaces"
+      />
+      <nav id="folders" aria-label="Workspaces"></nav>
+      <div class="sidebar-bottom">
+        <span class="dot"></span
+        ><span data-i="local">本地会话 · 数据留在本机</span>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">YOUR AGENTS, ONE PLACE</div>
+          <h1 data-i="sessions">会话中心</h1>
+          <p data-i="subtitle">找到上下文，继续你的工作。</p>
+        </div>
+        <button id="refresh" data-i="refresh">刷新</button>
+      </header>
+      <section class="stats" aria-label="Overview">
+        <div>
+          <span data-i="total">全部会话</span><strong id="total">—</strong>
+        </div>
+        <div>
+          <span data-i="live">活动后端</span><strong id="live">—</strong>
+        </div>
+        <div>
+          <span data-i="memory">后端内存 · RSS</span
+          ><strong id="memory">—</strong>
+        </div>
+        <div>
+          <span data-i="spaces">工作目录</span><strong id="spaces">—</strong>
+        </div>
+      </section>
+      <section class="workspace">
+        <div class="list-panel">
+          <div class="list-tools">
+            <input
+              id="search"
+              type="search"
+              placeholder="搜索会话、路径或标签"
+              aria-label="Search sessions"
+            /><select id="agent" aria-label="Agent">
+              <option value="">所有 Agent</option></select
+            ><select id="client" aria-label="Client">
+              <option value="">所有客户端</option></select
+            ><select id="state" aria-label="State">
+              <option value="" data-i="all">全部状态</option>
+              <option value="live" data-i="active">有后台进程</option>
+              <option value="history" data-i="history">历史 / 未关联</option>
+            </select>
+          </div>
+          <div class="scope">
+            <span id="scope"></span><span id="count"></span>
+          </div>
+          <div id="sessions" class="session-list" aria-label="Sessions"></div>
+        </div>
+        <aside class="inspector">
+          <div class="inspector-heading">
+            <span data-i="detail">会话详情</span><span>↗</span>
+          </div>
+          <div id="detail"></div>
+        </aside>
+      </section>
+      <footer>
+        <span id="status" role="status" aria-live="polite"></span
+        ><span data-i="footnote">资源按 PID 统计 · 持锁不代表正在生成</span>
+      </footer>
+    </main>
+    <div class="appearance">
+      <label
+        ><span data-i="theme">配色</span
+        ><select id="theme">
+          <option value="dark">Midnight</option>
+          <option value="light">Paper</option>
+          <option value="nord">Nord</option>
+          <option value="catppuccin">Catppuccin</option>
+        </select></label
+      ><label
+        ><span data-i="font">字体</span
+        ><select id="font">
+          <option value="system">System Sans</option>
+          <option value="mono">System Mono</option>
+          <option value="jetbrains">JetBrains Mono</option>
+          <option value="cascadia">Cascadia Code</option>
+        </select></label
+      ><select id="language" aria-label="Language">
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <dialog id="editor">
+      <form id="edit-form">
+        <h2 data-i="edit">名称与标签</h2>
+        <label
+          ><span data-i="name">会话名称</span
+          ><input id="edit-name" maxlength="160" required
+        /></label>
+        <p id="rename-note" class="muted"></p>
+        <label
+          ><span data-i="tags">标签（逗号分隔）</span><input id="edit-tags"
+        /></label>
+        <p id="edit-error" class="error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="edit-cancel" data-i="cancel">取消</button
+          ><button class="primary" id="edit-save" data-i="save">保存</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="confirm">
+      <form id="close-form">
+        <h2 data-i="stop">关闭后端</h2>
+        <p data-i="impact">
+          将向整个进程发送 SIGTERM，影响以下会话及同进程的其他任务。
+        </p>
+        <ul id="affected"></ul>
+        <label
+          ><span id="pid-label"></span
+          ><input
+            id="confirm-pid"
+            inputmode="numeric"
+            autocomplete="off"
+            required
+        /></label>
+        <p id="close-error" class="error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="close-cancel" data-i="cancel">取消</button
+          ><button class="danger" id="close-submit" data-i="stop">
+            关闭后端
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <script src="/app.js"></script>
+  </body>
+</html>
