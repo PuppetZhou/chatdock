@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""Compatible CLI entry point; --tui opens ChatDock."""
+import os
+from pathlib import Path
+import sys
+
+root = Path(__file__).resolve().parent
+sys.path.insert(0, str(root))
+if '--tui' in sys.argv:
+    venv = root / '.venv/bin/python'
+    if venv.exists() and Path(sys.prefix).resolve() != (root / '.venv').resolve():
+        os.execv(str(venv), [str(venv), str(root / 'chatdock'), *sys.argv[1:]])
+from agentdeck.cli import main
+if __name__ == '__main__':
+    sys.exit(main())
